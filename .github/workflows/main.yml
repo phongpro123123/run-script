@@ -28,7 +28,13 @@ jobs:
     - name: Install FFmpeg
       run: |
         sudo apt-get update
-        sudo apt-get install ffmpeg
+        sudo apt-get install -y ffmpeg
 
     - name: Run script
       run: python lt-git.py
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: final_video
+        path: final_video.mp4
