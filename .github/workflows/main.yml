@@ -32,6 +32,10 @@ jobs:
       run: |
         python lt-git.py
 
+    - name: List files for debugging
+      run: |
+        ls -la
+
     - name: Commit and push final video
       run: |
         git config --global user.name 'github-actions[bot]'
