@@ -33,8 +33,18 @@ jobs:
     - name: Run script
       run: python lt-git.py
 
+    - name: List files
+      run: ls -R
+
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
         name: final_video
         path: final_video.mp4
+
+    - name: Get artifact URL
+      id: get_artifact_url
+      run: echo "::set-output name=url::$(echo ${{ github.server_url }}/actions/artifacts/${{ github.repository }}/final_video/${{ github.run_id }}/final_video.mp4)"
+
+    - name: Provide download link
+      run: echo "Download your video here: ${{ steps.get_artifact_url.outputs.url }}"
