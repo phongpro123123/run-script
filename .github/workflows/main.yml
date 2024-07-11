@@ -37,6 +37,10 @@ jobs:
         tar -xvzf ngrok-v3-stable-linux-amd64.tgz
         sudo mv ngrok /usr/local/bin
 
+    - name: Authenticate ngrok
+      run: |
+        ngrok authtoken ${{ secrets.NGROK_AUTH_TOKEN }}
+
     - name: Start Flask server
       run: |
         nohup python lt-git.py &
