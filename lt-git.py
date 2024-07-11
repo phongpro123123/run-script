@@ -148,7 +148,7 @@ class AudioProcessThread(threading.Thread):
                 video_clip.close()  # Ensure the clip is closed to release resources
 
         # Use ThreadPoolExecutor to process video clips in parallel
-        with ThreadPoolExecutor(max_workers=10) as executor:
+        with ThreadPoolExecutor(max_workers=20) as executor:
             futures = {executor.submit(process_clip, index, sub): index for index, sub in enumerate(subtitles)}
             for future in as_completed(futures):
                 try:
