@@ -1,4 +1,4 @@
-name: Run Python Script
+name: Python Flask App CI
 
 on:
   push:
@@ -13,57 +13,47 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
+    - name: Checkout code
       uses: actions/checkout@v2
 
     - name: Set up Python
       uses: actions/setup-python@v2
       with:
-        python-version: '3.x'
+        python-version: '3.8'
 
     - name: Install dependencies
       run: |
-        sudo apt-get update
-        sudo apt-get install -y ffmpeg jq
         python -m pip install --upgrade pip
-        pip install -r requirements.txt
+        pip install flask pysrt requests pydub moviepy werkzeug
 
-    - name: Run Python script
+    - name: Install FFmpeg
       run: |
-        python lt-git.py
+        sudo apt-get update
+        sudo apt-get install -y ffmpeg
 
-    - name: Install ngrok
+    - name: Download ngrok
       run: |
-        wget https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip
-        unzip ngrok-stable-linux-amd64.zip
+        wget https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz
+        tar -xvzf ngrok-v3-stable-linux-amd64.tgz
         sudo mv ngrok /usr/local/bin
+
+    - name: Start Flask server
+      run: |
+        nohup python lt-git.py &
+        sleep 10
 
     - name: Start ngrok
       run: |
-        nohup ngrok tcp 22 --log=stdout > ngrok.log &
+        nohup ngrok http 5000 &
         sleep 10
-        curl -s http://localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url' > ngrok_url.txt
 
-    - name: Print ngrok URL
+    - name: Get ngrok URL
       run: |
-        echo "Ngrok URL for SSH:"
-        cat ngrok_url.txt
+        curl --silent --show-error http://127.0.0.1:4040/api/tunnels > tunnels.json
+        cat tunnels.json
+      shell: bash
 
-    - name: List files for debugging
+    - name: Keep the workflow running
       run: |
-        ls -la
-
-    - name: Keep the workflow running for 2 hours
-      run: |
-        echo "Keeping the workflow running for 2 hours..."
-        sleep 2h
-
-    - name: Commit and push final video
-      run: |
-        git config --global user.name 'github-actions[bot]'
-        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
-        git add final_video.mp4
-        git commit -m 'Add final video'
-        git push origin main
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        echo "Keeping the workflow running for 6 hours..."
+        sleep 21600
