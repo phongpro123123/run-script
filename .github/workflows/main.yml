@@ -24,7 +24,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y ffmpeg
+        sudo apt-get install -y ffmpeg jq
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
@@ -32,9 +32,31 @@ jobs:
       run: |
         python lt-git.py
 
+    - name: Install ngrok
+      run: |
+        wget https://bin.equinox.io/c/4VmDzA7iaHb/ngrok-stable-linux-amd64.zip
+        unzip ngrok-stable-linux-amd64.zip
+        sudo mv ngrok /usr/local/bin
+
+    - name: Start ngrok
+      run: |
+        nohup ngrok tcp 22 --log=stdout > ngrok.log &
+        sleep 10
+        curl -s http://localhost:4040/api/tunnels | jq -r '.tunnels[0].public_url' > ngrok_url.txt
+
+    - name: Print ngrok URL
+      run: |
+        echo "Ngrok URL for SSH:"
+        cat ngrok_url.txt
+
     - name: List files for debugging
       run: |
         ls -la
+
+    - name: Keep the workflow running for 2 hours
+      run: |
+        echo "Keeping the workflow running for 2 hours..."
+        sleep 2h
 
     - name: Commit and push final video
       run: |
