@@ -12,39 +12,39 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
 
-    - name: Install FFmpeg
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y ffmpeg
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
 
-    - name: Run script
-      run: python lt-git.py
+      - name: Run script
+        run: python lt-git.py
 
-    - name: List files
-      run: ls -R
+      - name: List files
+        run: ls -R
 
-    - name: Upload artifact
-      uses: actions/upload-artifact@v2
-      with:
-        name: final_video
-        path: final_video.mp4
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: final_video
+          path: final_video.mp4
 
-    - name: Get artifact URL
-      id: get_artifact_url
-      run: echo "::set-output name=url::$(echo ${{ github.server_url }}/actions/artifacts/${{ github.repository }}/final_video/${{ github.run_id }}/final_video.mp4)"
+      - name: Get artifact URL
+        id: get_artifact_url
+        run: echo "::set-output name=url::$(echo ${{ github.server_url }}/actions/artifacts/${{ github.repository }}/final_video/${{ github.run_id }}/final_video.mp4)"
 
-    - name: Provide download link
-      run: echo "Download your video here: ${{ steps.get_artifact_url.outputs.url }}"
+      - name: Provide download link
+        run: echo "Download your video here: ${{ steps.get_artifact_url.outputs.url }}"
