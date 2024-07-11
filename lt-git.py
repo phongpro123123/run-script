@@ -177,7 +177,7 @@ class AudioProcessThread(threading.Thread):
             print(filelist.read())
         
         # Combine clips using ffmpeg
-        cmd = ['ffmpeg', '-y', '-hwaccel', 'dxva2', '-f', 'concat', '-safe', '0', '-i', filelist_path, '-c', 'copy', self.output_path]
+        cmd = ['ffmpeg', '-y', '-f', 'concat', '-safe', '0', '-i', filelist_path, '-c:v', 'libx264', '-c:a', 'aac', self.output_path]
         print(f"Running command: {' '.join(cmd)}")  # Print the command for debugging
         result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         
