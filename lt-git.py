@@ -1,13 +1,24 @@
+from flask import Flask, request, render_template, send_file, redirect, url_for, flash, jsonify
 import os
-import shutil
 import threading
+import shutil
 import subprocess
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import pysrt
 import requests
 from pydub import AudioSegment
-from moviepy.editor import VideoFileClip, vfx
+from moviepy.editor import VideoFileClip, AudioFileClip, vfx
+from werkzeug.utils import secure_filename
+
+app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['OUTPUT_FOLDER'] = 'output'
+app.secret_key = 'supersecretkey'
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
+
+progress = 0
 
 class AudioProcessThread(threading.Thread):
     def __init__(self, subtitle_path, video_path, atempo=1.25, voice="hn_female_ngochuyen_fast_news_48k-thg", output_path="final_video.mp4", callback=None):
@@ -20,15 +31,17 @@ class AudioProcessThread(threading.Thread):
         self.callback = callback
 
     def run(self):
+        global progress
         try:
-            # Process audio clips first
+            progress = 10
             audio_clips = self.process_audio_clips(self.subtitle_path)
-            # Process video clips
+            progress = 50
             video_clips = self.process_video_clips(self.video_path, audio_clips)
-            # Merge audio and video clips
+            progress = 70
             self.merge_clips(video_clips, audio_clips)
-            # Combine all merged clips into the final video
+            progress = 90
             self.combine_clips()
+            progress = 100
             if self.callback:
                 self.callback("Tạo video thuyết minh thành công.")
         except Exception as e:
@@ -123,11 +136,11 @@ class AudioProcessThread(threading.Thread):
                 if speed != 1:  # Only adjust if the speed is different from 1
                     temp_clip = os.path.join(clip_dir, f'temp_clip{index}.mp4')
                     video_clip = video_clip.fx(vfx.speedx, speed)
-                    video_clip.write_videofile(temp_clip, codec='libx264', ffmpeg_params=['-c:v', 'h264_nvenc'])
+                    video_clip.write_videofile(temp_clip, codec='libx264')
                     os.replace(temp_clip, clip_file)
                     print(f"Clip {index} speed adjusted: {clip_file}")
                 else:
-                    video_clip.write_videofile(clip_file, codec='libx264', ffmpeg_params=['-c:v', 'h264_nvenc'])
+                    video_clip.write_videofile(clip_file, codec='libx264')
                     print(f"Clip {index} cut: {clip_file}")
 
                 return clip_file
@@ -194,16 +207,58 @@ class AudioProcessThread(threading.Thread):
         shutil.rmtree("clip_cut")
         shutil.rmtree("audio_clip")
         shutil.rmtree("video_da_ghep")
-        
-if __name__ == "__main__":
-    # Directly define the paths and settings here
-    subtitle_path = "srt.srt"
-    video_path = "video.mp4"
-    atempo = 1.20
-    output_path = "final_video.mp4"
 
-    print("Bắt đầu quá trình tạo video thuyết minh...")
-    thread = AudioProcessThread(subtitle_path, video_path, atempo=atempo, output_path=output_path)
+@app.route('/progress')
+def get_progress():
+    global progress
+    return jsonify(progress)
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/upload', methods=['POST'])
+def upload_files():
+    global progress
+    progress = 0
+    if 'subtitle' not in request.files or 'video' not in request.files:
+        return "No file part", 400
+
+    subtitle = request.files['subtitle']
+    video = request.files['video']
+    atempo = request.form.get('atempo', 1.25)
+    output_filename = request.form.get('output_filename', 'final_video.mp4')
+
+    if subtitle.filename == '' or video.filename == '':
+        return "No selected file", 400
+
+    subtitle_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(subtitle.filename))
+    video_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(video.filename))
+    output_path = os.path.join(app.config['OUTPUT_FOLDER'], secure_filename(output_filename))
+
+    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+    os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
+
+    subtitle.save(subtitle_path)
+    video.save(video_path)
+
+    thread = AudioProcessThread(subtitle_path, video_path, atempo=float(atempo), output_path=output_path)
     thread.start()
-    thread.join()  # Wait for the thread to finish
-    print("Quá trình tạo video thuyết minh đã hoàn thành.")
+    thread.join()
+
+    if not os.path.exists(output_path):
+        flash("Error: Final video was not created.")
+        return redirect(url_for('index'))
+
+    return redirect(url_for('download_file', filename=output_filename))
+
+@app.route('/download/<filename>')
+def download_file(filename):
+    file_path = os.path.join(app.config['OUTPUT_FOLDER'], filename)
+    if not os.path.exists(file_path):
+        flash("Error: File not found.")
+        return redirect(url_for('index'))
+    return send_file(file_path, as_attachment=True)
+
+if __name__ == "__main__":
+    app.run(debug=True)
