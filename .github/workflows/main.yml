@@ -32,19 +32,12 @@ jobs:
       run: |
         python lt-git.py
 
-    - name: Upload final video
-      uses: actions/upload-artifact@v2
-      with:
-        name: final_video
-        path: final_video.mp4
-
-    - name: Create download link
+    - name: Commit and push final video
       run: |
-        echo "Download the final video from the link below:" > download_link.txt
-        echo "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts" >> download_link.txt
-
-    - name: Upload download link
-      uses: actions/upload-artifact@v2
-      with:
-        name: download_link
-        path: download_link.txt
+        git config --global user.name 'github-actions[bot]'
+        git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+        git add final_video.mp4
+        git commit -m 'Add final video'
+        git push origin main
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
