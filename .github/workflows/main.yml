@@ -55,9 +55,6 @@ jobs:
       run: |
         curl --silent --show-error http://127.0.0.1:4040/api/tunnels > tunnels.json
         cat tunnels.json
+        NGROK_URL=$(cat tunnels.json | jq -r '.tunnels[0].public_url')
+        echo "Download your video from: $NGROK_URL/output/final_video.mp4"
       shell: bash
-
-    - name: Keep the workflow running
-      run: |
-        echo "Keeping the workflow running for 6 hours..."
-        sleep 21600
