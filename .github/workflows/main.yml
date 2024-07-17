@@ -43,12 +43,12 @@ jobs:
 
     - name: Start Flask server
       run: |
-        nohup python lt-git.py &
+        nohup python lt-git.py &  # Start Flask server in the background
         sleep 10
 
     - name: Start ngrok
       run: |
-        nohup ngrok http 5000 &
+        nohup ngrok http 5000 &  # Start ngrok in the background
         sleep 10
 
     - name: Get ngrok URL
