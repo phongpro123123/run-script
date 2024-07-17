@@ -1,4 +1,4 @@
-from flask import Flask, request, render_template, send_file, redirect, url_for, flash, jsonify
+from flask import Flask, jsonify
 import os
 import threading
 import shutil
@@ -8,13 +8,12 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import pysrt
 import requests
 from pydub import AudioSegment
-from moviepy.editor import VideoFileClip, AudioFileClip, vfx
+from moviepy.editor import VideoFileClip, vfx
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 app.config['OUTPUT_FOLDER'] = 'output'
-app.secret_key = 'supersecretkey'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
 
@@ -208,60 +207,20 @@ class AudioProcessThread(threading.Thread):
         shutil.rmtree("audio_clip")
         shutil.rmtree("video_da_ghep")
 
-@app.route('/progress')
-def get_progress():
-    global progress
-    return jsonify(progress)
+def main():
+    subtitle_path = 'result.srt'
+    video_path = 'video.mp4'
+    output_path = 'output/final_video.mp4'
+    atempo = 1.25
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-@app.route('/upload', methods=['POST'])
-def upload_files():
-    global progress
-    progress = 0
-    if 'subtitle' not in request.files or 'video' not in request.files:
-        return "No file part", 400
-
-    subtitle = request.files['subtitle']
-    video = request.files['video']
-    atempo = request.form.get('atempo', 1.25)
-    output_filename = request.form.get('output_filename', 'final_video.mp4')
-
-    if subtitle.filename == '' or video.filename == '':
-        return "No selected file", 400
-
-    subtitle_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(subtitle.filename))
-    video_path = os.path.join(app.config['UPLOAD_FOLDER'], secure_filename(video.filename))
-    output_path = os.path.join(app.config['OUTPUT_FOLDER'], secure_filename(output_filename))
-
-    os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
-    os.makedirs(app.config['OUTPUT_FOLDER'], exist_ok=True)
-
-    subtitle.save(subtitle_path)
-    video.save(video_path)
-
-    thread = AudioProcessThread(subtitle_path, video_path, atempo=float(atempo), output_path=output_path)
+    thread = AudioProcessThread(subtitle_path, video_path, atempo=atempo, output_path=output_path)
     thread.start()
     thread.join()
 
-    if not os.path.exists(output_path):
-        flash("Error: Final video was not created.")
-        return redirect(url_for('index'))
-
-    return redirect(url_for('download_file', filename=output_filename))
-
-@app.route('/download/<filename>')
-def download_file(filename):
-    file_path = os.path.join(app.config['OUTPUT_FOLDER'], filename)
-    if not os.path.exists(file_path):
-        flash("Error: File not found.")
-        return redirect(url_for('index'))
-    return send_file(file_path, as_attachment=True)
+    if os.path.exists(output_path):
+        print(f"Video processing complete. Download your video from: {output_path}")
+    else:
+        print("Error: Final video was not created.")
 
 if __name__ == "__main__":
-    try:
-        app.run(debug=True, host='0.0.0.0')  # Add host='0.0.0.0' to allow external access
-    except Exception as e:
-        print(f"Error starting Flask server: {e}")
+    main()
