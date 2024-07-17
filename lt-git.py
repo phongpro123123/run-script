@@ -261,4 +261,7 @@ def download_file(filename):
     return send_file(file_path, as_attachment=True)
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0')  # Add host='0.0.0.0' to allow external access
+    try:
+        app.run(debug=True, host='0.0.0.0')  # Add host='0.0.0.0' to allow external access
+    except Exception as e:
+        print(f"Error starting Flask server: {e}")
